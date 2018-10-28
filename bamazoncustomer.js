@@ -25,27 +25,15 @@ function productDisplay() {
     console.log("Welcome to Bamazon, Your Community Marketplace \n");
     console.log("Displaying all available products...\n");
     connection.query("SELECT * FROM products", function(err, res) {
-      if (err) throw err;
-// NEXT OBJECTIVE:
-// 1) split recieved "res" data into respective parts
-// 2) For Loop to display all of the server options
-//      2.1) Find out how to read number of rows in a server!!
-      console.log(res);
-      inquirer
-        .prompt([
-            {
-                type: "list",
-                message: "Would you like to purchase an Item? \n",
-                choices: ["Yes", "Not Right Now"],
-                name: "choice"
-            }
-        ]).then(function(answer) {
-            if (answer === "Yes") {
-                productPurchase();
-            } else if (answer === "Not Right Now") {
-                console.log("Thank you for using Bamazon")
-            }
-        })
+    if (err) throw err;
+
+    for(var i = 0; i < res.length; i++){
+        console.log('Item ID:' + res[i].item_id + ' Product Name: ' + res[i].product_name + ' // Price: ' + '$' + res[i].price + " // Remaining Quantity: " + res[i].stock_quantity + " // Department: " + res[i].department_name)
+        console.log("-- -- -- -- -- -- -- -- -- -- -- -- --");
+    }
+
+    console.log("\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=//=//=//=//=//=//=//=//=//=//=//=//=//=//=//=//=//");
+    productPurchase();
       connection.end();
     });
 };
@@ -56,18 +44,52 @@ function productPurchase() {
             {
                 type:"input",
                 message: "Please input the ID of the product you would like to purchase: \n",
-                name:"prodIdInput"
+                name:"prodIdInput",
+                validate: function(value){
+                    var validID = value.match(/^[0-9]+$/)
+                    if(validID){
+                        return true
+                    } else {
+                        return console.log("Product ID not Found");
+                    }
+                }
             },
 
             {
                 type: "input",
                 message: "Please input the quantity of this item that you would like to purchase: \n",
-                name:"quantInput"
+                name:"quantInput",
+                validate: function(value){
+                    var validID = value.match(/^[0-9]+$/)
+                    if(validID){
+                        return true
+                    } else {
+                        return console.log("Invalid Input: Please Input a Quantity");
+                    }
+                }
             }
-
         ]).then(function(answer) {
-            // connection.query(""
-            // )
-            console.log(answer);
+            connection.query('SELECT * FROM products WHERE id = ?', [answer.prodIdInput], function(err, res){
+                if(answer.quantInput > res[0].stock_quantity){
+                    console.log('Insufficient Quantity');
+                    console.log('');
+                    // newOrder();
+                }
+                else{
+                    amountOwed = res[0].Price * answer.quantInput;
+                    currentDepartment = res[0].DepartmentName;
+                    console.log('Thank you for using Bamazon');
+                
+                    //update products table
+                    connection.query('UPDATE products SET ? Where ?', [{
+                        stock_quantity: res[0].stock_quantity - answer.quantInput
+                    },{
+                        id: answer.prodIdInput
+                    }], function(err, res){});
+                    //update departments table
+                    // logSaleToDepartment();
+                    // newOrder();
+                }
+            })
         })
 };
